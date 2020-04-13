@@ -5,6 +5,13 @@ This project contains a python module for interfacing with SPI RM3100 from user 
 
 All code is MIT licensed unless explicitly stated otherwise.
 
+
+Hints
+-----
+This project is depends on spidev library to make the SPI connection and 
+you have to check the SPI connection as mentioned here before make the communication
+https://www.raspberrypi.org/documentation/hardware/raspberrypi/spi/README.md
+
 Usage
 -----
 
