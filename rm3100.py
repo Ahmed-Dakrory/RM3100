@@ -25,18 +25,24 @@ class RM3100(object):
     RM3100_BIST_REG   = 0x33
     RM3100_STATUS_REG = 0x34 
     RM3100_REVID_REG  = 0x36 
-
-    #RM3100 Default values
-    DEFAULTCCOUNT = 200 #200
-    DEFAULTGAIN = 75    #200 Cycle Count, Gain 75
+    RM3100POLL_MXYX = 0x70
+    # CCP0          = 0x64 # 100 Cycle Count
+    # CCP1          = 0x00
+    CCP0          = 0xC8 # 200 Cycle Count
+    CCP1          = 0x00
+    # CCP0          = 0x90 # 400 Cycle Count
+    # CCP1          = 0x01 
 
     #Other Settings
-    UPPERCYCLECOUNT = 400
-    LOWERCYCLECOUNT = 30
+    RM3100_TMRC_600HZ = 0x92
+    RM3100_TMRC_300HZ = 0x93
+    RM3100_TMRC_150HZ = 0x94
+    RM3100_TMRC_75HZ = 0x95
+    RM3100_TMRC_37HZ = 0x96
 
     DEG_PER_RAD = 180.0/3.14159265358979
 
-    rm3100_resolution = 13.0/2.0 # nT/lsb, 400 cycle @ 1 avg
+    rm3100_resolution = 75 #  microT/lsb, 200 cycle @ 1 avg
 
     def __init__(self, SSN, DRDY):
         GPIO.setwarnings(False)
@@ -57,20 +63,17 @@ class RM3100(object):
         self.spi.mode = 0
         self.spi.no_cs = True
         self.spi.lsbfirst = False
-        self.current_ccount = []
-        self.current_gain = []
-        for i in range(3):
-            self.current_ccount.append(self.DEFAULTCCOUNT)
-            self.current_gain.append(self.DEFAULTGAIN)
         
         self.configure_the_RM3100()
 
     def configure_the_RM3100(self):
-        self.write([0x04,0x00,0x64,0x00,0x64,0x00,0x64])#initial Config
+        self.write([self.RM3100_POLL_REG,0x00,0x00])#clear all reg
+        time.sleep(0.02)
+        self.write([self.RM3100_CCXLSB_REG,self.CCP1,self.CCP0,self.CCP1,self.CCP0,self.CCP1,self.CCP0])#initial Config
         time.sleep(0.02)
         self.write([self.RM3100_CMM_REG,0x79])#write to CMM
         time.sleep(0.02)
-        self.write([self.RM3100_TMRC_REG,0x95])#write to TMRC
+        self.write([self.RM3100_TMRC_REG,self.RM3100_TMRC_150HZ])#write to TMRC to be 150Hz
         time.sleep(0.02)
 
         TMRC = self.read([0x8B])
@@ -79,16 +82,14 @@ class RM3100(object):
 
 
     def send_Poll_Read(self):
-        self.write([self.RM3100_POLL_REG,0b01110000])# send Poll Reg
-        time.sleep(0.02)
+        self.write([self.RM3100_POLL_REG,self.RM3100POLL_MXYX])# send Poll Reg
+        time.sleep(0.01)
         state = GPIO.input(self.DRDY)
 
         return state
 
 
     def readMag(self):
-        self.write([0x01,0x79])#write to CMM
-        time.sleep(0.02)
         state = self.send_Poll_Read()
         MagValues = []
         if state == 1:
